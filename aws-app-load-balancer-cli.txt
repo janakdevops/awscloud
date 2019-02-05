@@ -1,0 +1,43 @@
+AWS Application Load Balancer using host based routing
+
+- Create Load Balancer "myapploadbalancer" with minimum two subnets
+
+aws elbv2 create-load-balancer --name hostnamebasedelb --subnets "subnet-b0eb0b9f" "subnet-fb4acb9f" "subnet-3a9c7967" --security-groups sg-8e3804fc
+
+- Create Target Group
+
+aws elbv2 create-target-group --name server1 --protocol HTTP --port 80 --vpc-id vpc-96805cee --health-check-path /healthy.html
+
+aws elbv2 create-target-group --name server2 --protocol HTTP --port 80 --vpc-id vpc-96805cee --health-check-path /healthy.html
+
+aws elbv2 create-target-group --name server3 --protocol HTTP --port 80 --vpc-id vpc-96805cee --health-check-path /healthy.html
+
+- Register instance to target group
+
+aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-1:289367031961:targetgroup/server1/4e16bd839154ef46 --targets Id=i-0edb25b9ec119328f,Port=80
+
+aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-1:289367031961:targetgroup/server2/597cc371a7a8a963 --targets Id=i-06c6ad5b0aa041be9,Port=80
+
+aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-1:289367031961:targetgroup/server3/82c9f98ae3c82e24 --targets Id=i-02e0aee0b95f97e9f,Port=80
+
+- Create  Default Listener
+
+We have set it to route query to host1 default
+
+aws elbv2 create-listener --load-balancer-arn arn:aws:elasticloadbalancing:us-east-1:289367031961:loadbalancer/app/hostnamebasedelb/f390e74f9e07d83f --protocol HTTP --port 80 --default-actions Type=forward,TargetGroupArn=arn:aws:elasticloadbalancing:us-east-1:289367031961:targetgroup/server1/4e16bd839154ef46
+
+-  View DNS records 
+
+aws route53 list-hosted-zones
+ 
+aws route53 list-resource-record-sets help --hosted-zone-id ZRJC0199L56Z8
+
+- Create rule for host based routing
+
+aws elbv2 create-rule --listener-arn arn:aws:elasticloadbalancing:us-east-1:289367031961:listener/app/hostnamebasedelb/f390e74f9e07d83f/b7fd86b7527eee68 --priority 10 --conditions Field=host-header,Values='server1.devopsservicecloud.xyz' --actions Type=forward,TargetGroupArn=arn:aws:elasticloadbalancing:us-east-1:289367031961:targetgroup/server1/4e16bd839154ef46
+
+aws elbv2 create-rule --listener-arn arn:aws:elasticloadbalancing:us-east-1:289367031961:listener/app/hostnamebasedelb/f390e74f9e07d83f/b7fd86b7527eee68 --priority 11 --conditions Field=host-header,Values='server2.devopsservicecloud.xyz' --actions Type=forward,TargetGroupArn=arn:aws:elasticloadbalancing:us-east-1:289367031961:targetgroup/server2/597cc371a7a8a963
+
+aws elbv2 create-rule --listener-arn arn:aws:elasticloadbalancing:us-east-1:289367031961:listener/app/hostnamebasedelb/f390e74f9
+e07d83f/b7fd86b7527eee68 --priority 12 --conditions Field=host-header,Values='server3.devopsservicecloud.xyz' --actions Type=forward,TargetGroupArn=
+arn:aws:elasticloadbalancing:us-east-1:289367031961:targetgroup/server3/82c9f98ae3c82e24 
